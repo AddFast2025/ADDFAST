@@ -16,6 +16,10 @@
     text-align: center;
     font-size: 20px;
   }
+button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
 
   #appBox {
     max-width:350px;
@@ -95,7 +99,7 @@
 <textarea id="nama" placeholder="Masukkan banyak nama (1 baris 1 nama)" 
 style="width:350px; height:150px; overflow-y:auto;"></textarea><br>
 
-  <button onclick="generate()">Generate</button>
+ <button onclick="generate()" id="btnGenerate">Generate</button>
 
   <div class="hasil" id="hasil"></div>
   <div class="hasil" id="kode"></div>
@@ -228,6 +232,10 @@ async function loadJenisPassword() {
 
 // GENERATE
 window.generate = async function () {
+      if (sudahGenerate) {
+  alert("⚠️ Data belum berubah, tidak perlu generate ulang");
+  return;
+}
 
   const text = document.getElementById("nama").value;
   const selectedIndex = document.getElementById("jenisSelect").value;
@@ -248,12 +256,17 @@ window.generate = async function () {
   namaList.forEach((n, i) => {
     pesan += `${i+1}. ${n}\n`;
   });
-  let konfirmasi = confirm(pesan + "\Klik OK = Iya Copy & Simpan\nCancel = Batal");
 
-  if (!konfirmasi) {
-    document.getElementById("nama").value = "";
-    return;
-  }
+
+  let konfirmasi = confirm(pesan + "\nKlik OK = Iya Copy & Simpan\nCancel = Batal");
+
+if (!konfirmasi) {
+  return; // ❗ jangan lanjut
+}
+
+
+  sudahGenerate = true;
+btn.disabled = true;
 
   // 🔥 AMBIL MAPPING
   const docSnap = await getDoc(doc(db, "mapping", "abjad"));
@@ -323,8 +336,24 @@ window.generate = async function () {
   });
 
   // kosongkan input
-  document.getElementById("nama").value = "";
 };
+
+let sudahGenerate = false;
+
+const textarea = document.getElementById("nama");
+const selectJenis = document.getElementById("jenisSelect");
+const btn = document.getElementById("btnGenerate");
+
+// aktifkan tombol jika ada perubahan
+textarea.addEventListener("input", () => {
+  sudahGenerate = false;
+  btn.disabled = false;
+});
+
+selectJenis.addEventListener("change", () => {
+  sudahGenerate = false;
+  btn.disabled = false;
+});
 
 </script>
 
