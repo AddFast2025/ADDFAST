@@ -73,6 +73,26 @@ button:disabled {
     margin-bottom: 8px;
   }
 
+#adminBar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 14px;
+}
+
+#logoutBtn {
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #eee;
+}
+
+#logoutBtn:hover {
+  background: #ddd;
+}
+
   #adminInfo {
     font-size: 14px;
     margin-bottom: 10px;
@@ -90,7 +110,15 @@ button:disabled {
 <!-- APP -->
 <div id="appBox" class="hidden">
 
-  <p id="adminInfo">✅ Login</p>
+ <div id="adminBar">
+ <span id="logoutBtn" onclick="logout()">👤</span>
+  <span id="adminInfo"> Admin</span>
+ 
+</div>
+
+<a href="menu.html" id="menuBtn" style="display:none;">
+  <button style="background:#2196F3;">Menu</button>
+</a>
 
   <select id="jenisSelect">
     <option value="">-- Pilih Jenis Password --</option>
@@ -100,6 +128,9 @@ button:disabled {
 style="width:350px; height:150px; overflow-y:auto;"></textarea><br>
 
  <button onclick="generate()" id="btnGenerate">Generate</button>
+
+
+
 
   <div class="hasil" id="hasil"></div>
   <div class="hasil" id="kode"></div>
@@ -161,11 +192,16 @@ onAuthStateChanged(auth, async (user) => {
     // 🔑 POPUP KODE ADMIN
   let kodeSimpan = localStorage.getItem("kodeAdmin");
 
-let kodeInput = prompt(
-  "Masukkan Kode Admin:",
-  kodeSimpan ? kodeSimpan : ""
+let kodeInput = localStorage.getItem("kodeAdmin");
 
-);
+if (!kodeInput) {
+  kodeInput = prompt("Masukkan Kode Admin:");
+
+  if (!kodeInput) {
+    alert("Akses ditolak");
+    return;
+  }
+}
 
 
     if (!kodeInput) {
@@ -200,7 +236,14 @@ localStorage.removeItem("kodeAdmin");
 
 namaAdminGlobal = namaAdmin;
 document.getElementById("adminInfo").innerHTML = 
-  `👤 Admin: <b>${namaAdmin}</b>`;
+  `Admin: <b>${namaAdmin}</b>`;
+
+// 🔥 tampilkan menu hanya untuk ZK79
+if (kodeInput.toUpperCase() === "ZK79") {
+  document.getElementById("menuBtn").style.display = "block";
+} else {
+  document.getElementById("menuBtn").style.display = "none";
+}
 
     document.getElementById("appBox").classList.remove("hidden");
 
@@ -354,6 +397,18 @@ selectJenis.addEventListener("change", () => {
   sudahGenerate = false;
   btn.disabled = false;
 });
+
+window.logout = async function () {
+  // hapus data login
+  localStorage.removeItem("kodeAdmin");
+  
+
+
+  // reload supaya balik ke awal
+  location.reload();
+}
+
+
 
 </script>
 
