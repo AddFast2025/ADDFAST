@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rekap Password</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: #f5f5f5;
+  margin: 0;
+  padding: 12px;
+}
+
+h2 {
+  text-align: center;
+}
+
+#box {
+  max-width: 400px;
+  margin: auto;
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  border-radius: 8px;
+}
+
+.item {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f9f9f9;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border: none;
+  font-weight: bold;
+}
+.item hr {
+  margin: 8px 0;
+}
+
+
+.back {
+  background: #777;
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<h2>📊 Rekap Password</h2>
+
+<div id="box">
+
+<select id="filterAdmin">
+  <option value="">Semua Admin</option>
+</select>
+
+<select id="filterJenis">
+  <option value="">Semua Jenis</option>
+</select>
+
+<div id="list"></div>
+
+<button class="back" onclick="kembali()">⬅ Kembali</button>
+
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+
+import { 
+  getFirestore, collection, getDocs 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+import { 
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCpCCveqb2wqm8ju6vuKAHrWQBKiPEelp0",
+  authDomain: "addfast-10f22.firebaseapp.com",
+  projectId: "addfast-10f22",
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+
+let semuaData = [];
+
+const filterAdmin = document.getElementById("filterAdmin");
+const filterJenis = document.getElementById("filterJenis");
+
+// ================= LOAD DATA =================
+onAuthStateChanged(auth, async (user) => {
+
+  if (!user) {
+
+    let email = localStorage.getItem("email");
+    let password = localStorage.getItem("password");
+
+    if (!email || !password) {
+      email = prompt("Masukkan Email:");
+      password = prompt("Masukkan Password:");
+
+      if (!email || !password) {
+        alert("Login dibatalkan");
+        return;
+      }
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+
+      localStorage.setItem("email", email);
+      localStorage.setItem("password", password);
+
+      location.reload(); // 🔥 biar masuk ulang sebagai user login
+      return;
+
+    } catch (e) {
+      alert("❌ Login gagal: " + e.message);
+      localStorage.removeItem("email");
+      localStorage.removeItem("password");
+      return;
+    }
+
+  } else {
+    // 🔥 kalau sudah login baru load data
+    loadData();
+  }
+
+});
+
+
+async function loadData() {
+
+  const snap = await getDocs(collection(db, "terbitPassword"));
+
+  semuaData = [];
+
+  let adminSet = new Set();
+  let jenisSet = new Set();
+
+  snap.forEach(doc => {
+    const data = doc.data();
+
+    // pastikan field ada
+    semuaData.push(data);
+
+if (data.admin) adminSet.add(data.admin);
+if (data.jenis) jenisSet.add(data.jenis);
+
+   
+  });
+
+  // 🔥 RESET dropdown (INI PENTING)
+  filterAdmin.innerHTML = '<option value="">Semua Admin</option>';
+  filterJenis.innerHTML = '<option value="">Semua Jenis</option>';
+
+  // isi admin
+  adminSet.forEach(a => {
+    const opt = document.createElement("option");
+    opt.value = a;
+    opt.textContent = a;
+    filterAdmin.appendChild(opt);
+  });
+
+  // isi jenis
+  jenisSet.forEach(j => {
+    const opt = document.createElement("option");
+    opt.value = j;
+    opt.textContent = j;
+    filterJenis.appendChild(opt);
+  });
+
+  tampilkan();
+}
+
+// ================= TAMPILKAN =================
+function tampilkan() {
+
+  const list = document.getElementById("list");
+
+  const adminVal = filterAdmin.value;
+  const jenisVal = filterJenis.value;
+
+  list.innerHTML = "";
+
+  const hasil = semuaData.filter(d => {
+    return (!adminVal || d.admin === adminVal) &&
+           (!jenisVal || d.jenis === jenisVal);
+  });
+
+  if (hasil.length === 0) {
+    list.innerHTML = "<p>Tidak ada data</p>";
+    return;
+  }
+
+  // terbaru di atas
+  hasil.sort((a, b) => {
+    if (!a.createdAt || !b.createdAt) return 0;
+    return b.createdAt.seconds - a.createdAt.seconds;
+  });
+
+  hasil.forEach(d => {
+
+    const div = document.createElement("div");
+    div.className = "item";
+
+    let tanggal = "-";
+
+    if (d.createdAt && d.createdAt.seconds) {
+      tanggal = new Date(d.createdAt.seconds * 1000)
+        .toLocaleString();
+    }
+
+    let detail = "";
+
+if (d.data && Array.isArray(d.data)) {
+  d.data.forEach(item => {
+
+    // pisahkan nama dan password
+    let baris = item.split("\n");
+
+    if (baris.length >= 2) {
+      detail += `
+        <div style="margin-top:5px;">
+          ${baris[0]}<br>
+          <b>${baris[1]}</b>
+        </div>
+      `;
+    } else {
+      detail += `<div>${item}</div>`;
+    }
+
+  });
+}
+
+div.innerHTML = `
+  <b>${d.jenis}</b><br>
+  Admin: ${d.admin}<br>
+  Jumlah: ${d.jumlah}<br>
+  <small>${tanggal}</small>
+
+  <hr>
+
+  ${detail}
+`;
+
+
+    list.appendChild(div);
+  });
+}
+
+// ================= EVENT =================
+filterAdmin.addEventListener("change", tampilkan);
+filterJenis.addEventListener("change", tampilkan);
+
+// ================= BACK =================
+window.kembali = function () {
+  window.location.href = "index.html";
+};
+
+// ================= INIT =================
+
+
+</script>
+
+</body>
+</html>
